@@ -1,0 +1,143 @@
+---
+title: "House Pricing Regression Analysis"
+author: "Aris"
+date: '2022-03-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(performance)
+library(GGally)
+library(car)
+library(scales)
+library(lmtest)
+```
+
+#Load Dataset
+
+```{r}
+price <- read_csv("HousePrices_HalfMil.csv")
+```
+
+#EDA
+
+```{r}
+glimpse(price)
+```
+
+```{r}
+colSums(is.na(price))
+```
+```{r}
+price <- price %>% 
+  
+  mutate_at(vars(`White Marble`, `Black Marble`, `Indian Marble`, Floors, City, Electric, Fiber, `Glass Doors`, `Swiming Pool`, Garage, Solar), as.factor)
+  
+  
+```
+
+
+
+
+
+
+```{r}
+ggcorr(price, label = TRUE, label_size = 2.9, hjust = 1, layout.exp = 2)
+```
+Floors, Fiber dan White Marble memiliki korelasi paling tinggi positif secara berurutan sementara Indian Marble memiliki korelasi negatif.
+
+Solar dan Garden tidak memiliki korelasi, namun karena dinilai cukup penting akan tetap digunakan dalam analisis.
+
+
+```{r}
+price_scale <- scale(price)
+boxplot(price_scale)
+```
+Data relatif tidak memiliki outlier yang banyak, sehingga disimpulkan berdistribusi normal.
+
+#Model Regresi Linear
+
+Dibuat dulu data train dan data test
+```{r}
+set.seed(100)
+samplesize <- round(0.8 * nrow(price), 0)
+index <- sample(seq_len(nrow(price)), size = samplesize)
+
+data_train <- price[index, ]
+data_test <- price[-index, ]
+```
+
+
+
+```{r}
+model_all <- lm(Prices~., data = price)
+model_none <- lm(Prices~1, data = price)
+summary(model_all)
+summary(model_none)
+```
+
+```{r}
+stepback_model <- step(model_all, direction = 'backward')
+```
+
+```{r}
+forstep_model <- step(model_none, direction = 'forward', scope = list(lower = model_none, upper = model_all))
+```
+
+
+Check summary kedua model diatas
+```{r}
+summary(stepback_model)
+summary(forstep_model)
+```
+
+Uji Multicolinearity
+```{r}
+vif(stepback_model)
+
+```
+Normality check
+```{r}
+check_collinearity(stepback_model)
+check_heteroscedasticity(stepback_model)
+check_normality(stepback_model)
+```
+
+```{r}
+check_collinearity(forstep_model)
+check_heteroscedasticity(forstep_model)
+check_normality(forstep_model)
+```
+
+Linearity test
+
+```{r}
+cor.test(price$Prices, price$Garage)
+cor.test(price$Prices, price$FirePlace)
+cor.test(price$Prices, price$Baths)
+cor.test(price$Prices, price$White.Marble)
+cor.test(price$Prices, price$Black.Marble)
+cor.test(price$Prices, price$Indian.Marble)
+cor.test(price$Prices, price$Floors)
+cor.test(price$Prices, price$City)
+cor.test(price$Prices, price$Solar)
+cor.test(price$Prices, price$Electric)
+cor.test(price$Prices, price$Fiber)
+cor.test(price$Prices, price$Glass.Doors)
+cor.test(price$Prices, price$Swiming.Pool)
+cor.test(price$Prices, price$Garden)
+cor.test(price$Prices, price$Area)
+```
+
+
+
+
+
+
+
+
